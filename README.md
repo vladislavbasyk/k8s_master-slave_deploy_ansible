@@ -17,6 +17,6 @@
       eval `ssh-agent -s`; ssh-add ssh-key/vm_rsa
   
   4. После чего запустить одну из playbook например:
-      ansible-playbook k8s-deploy.yml
+      ansible-playbook k8s-deploy.ym
 
 
