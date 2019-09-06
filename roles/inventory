@@ -1,0 +1,17 @@
+[ALL:children]
+master 
+slave
+
+
+[master] 
+k8s-master-1 ansible_host=192.168.56.11
+
+[master:vars]
+group=master
+
+[slave] 
+k8s-slave-1 ansible_host=192.168.56.21
+k8s-slave-2 ansible_host=192.168.56.22 
+
+[slave:vars]
+group=slave

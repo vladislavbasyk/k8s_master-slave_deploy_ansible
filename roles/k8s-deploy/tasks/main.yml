@@ -1,0 +1,105 @@
+---
+# tasks file for deploy kubernetes
+- name: Check OS
+  debug:
+    var: ansible_os_family  
+
+- block: # ===DEPLOY K8S-ALL===
+  - name: Disable SWAP since kubernetes can't work with swap enabled
+    shell: swapoff -a
+
+  - name: Disable SWAP in fstab since kubernetes can't work with swap enabled
+    replace:
+      path: /etc/fstab
+      regexp: '^(.+?\sswap\s+sw\s+.*)$'
+      replace: '# \1'
+  
+  - name: Update packeges
+    shell: apt-get update
+    
+  - name: Install apt-transport-https
+    apt: name=apt-transport-https
+  
+  - name: Add KEY for k8s-node
+    shell: curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add
+  
+  - name: Add link in sources.list
+    shell: |
+      cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
+      deb https://apt.kubernetes.io/ kubernetes-xenial main
+      EOF
+  
+  - name: Update packeges
+    shell: apt-get update
+  
+  - name: Install packeges (docker, kubeadm, kubectl, kubelet, k8s)
+    apt: name={{ item }}
+    loop:
+      - docker.io
+      - kubeadm
+      - kubectl
+      - kubelet
+      - kubernetes-cni
+  
+  - name: Docker start
+    service: name=docker state=started enabled=yes
+
+
+
+- block: # ===DEPLOY K8S-MASTER===
+  - name: Create manifests folder
+    file:
+      path: /home/ubuntu/manifests
+      state: directory
+      mode: 0755  
+  
+  - name: Copy manifests in folder 
+    copy: src={{ item }} dest={{destin_folder}} mode=0555
+    # with_fileglob: "{{ source_folder }}/*.*"
+    loop:
+       - "calico.yaml"
+
+  - name: Initialization k8s-master
+    shell: kubeadm init --pod-network-cidr=172.168.0.0/16 --apiserver-advertise-address="{{ ansible_host }}"
+    # "{{ ansible_enp0s8.ipv4.address }}"
+    ignore_errors: yes
+  
+  - name: Create config for kubectl
+    shell: mkdir -p $HOME/.kube && cp -i /etc/kubernetes/admin.conf $HOME/.kube/config && chown $(id -u):$(id -g) $HOME/.kube/config
+    async: 10
+    poll: 3
+    ignore_errors: yes
+  
+  - name: Initialization calico
+    shell: kubectl apply -f /home/ubuntu/manifests/calico.yaml
+    ignore_errors: yes
+  
+  - name: Copy kubectl-config for user
+    tags: kubeconfig
+    shell: cp -r /root/.kube/ /home/ubuntu/ && chown -R ubuntu:ubuntu /home/ubuntu/.kube/ 
+  
+  - name: Add autocomplete for kubectl
+    tags: kubeconfig
+    lineinfile:
+      dest: /home/ubuntu/.bashrc
+      state: present
+      line: 'source <(kubectl completion bash)'
+
+  when: group == "master"
+  tags: k8s-master
+
+- block: # ===DEPLOY K8S-SLAVE===
+  - name: View token k8s-master
+    when: group == "master"
+    shell: kubeadm token create --print-join-command
+    register: result    
+
+  - name: Initialization k8s-slave
+    when: group == "master"
+    shell: "{{ result.stdout }}"
+    delegate_to: "{{item}}"
+    delegate_facts: True
+    loop: "{{ groups['slave'] }}"
+    ignore_errors: yes
+        
+  tags: k8s-slave

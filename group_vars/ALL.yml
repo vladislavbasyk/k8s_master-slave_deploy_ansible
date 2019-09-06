@@ -1,0 +1,3 @@
+---
+ansible_user: ubuntu 
+ansible_ssh+private_key_file: ssh-key/vm_rsa

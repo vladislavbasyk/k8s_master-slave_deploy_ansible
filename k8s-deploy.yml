@@ -1,0 +1,8 @@
+---
+- name: K8S-deploy
+  hosts: all
+  become: yes
+  any_errors_fatal: true
+
+  roles:
+    - { role: k8s-deploy, when: ansible_system == 'Linux' }

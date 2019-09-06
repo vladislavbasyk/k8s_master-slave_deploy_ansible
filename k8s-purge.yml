@@ -1,0 +1,22 @@
+---
+- name: k8s-purge
+  hosts: all
+  become: yes
+
+  tasks:
+  - name: Kubeadm reset
+    shell: kubeadm reset --force
+    ignore_errors: True
+
+  - name: Purge packeges (docker, kubeadm, kubectl, kubelet, k8s)
+    apt: name={{ item }} state=absent autoremove=yes
+    loop:
+      - docker.io
+      - kubeadm
+      - kubectl
+      - kubelet
+      - kubernetes-cni
+      - kube*
+  
+  - name: Remove config for kubectl
+    shell: rm -rf ~/.kube && rm -rf /root.kube

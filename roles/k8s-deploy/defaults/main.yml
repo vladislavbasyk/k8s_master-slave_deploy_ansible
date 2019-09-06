@@ -1,0 +1,3 @@
+---
+# defaults file for k8s-deploy
+destin_folder: /home/ubuntu/manifests
