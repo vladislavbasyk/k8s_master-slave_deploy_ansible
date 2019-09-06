@@ -1,6 +1,7 @@
-# Репозиторий состоит из двух playbook:
-#  k8s-deploy.yml - развернет на ваших серверах Kubernetes по принципу Мастер-Слейв 
-#  k8s-purge.yml - удалит на ваших серверах Kubernetes
+#Kubernetes-deploy/purge
+ Репозиторий состоит из двух playbook:
+ k8s-deploy.yml - развернет на ваших серверах Kubernetes по принципу Мастер-Слейв 
+ k8s-purge.yml - удалит на ваших серверах Kubernetes
 
 Для того, чтобы playbooks отработали вам необходимо:
    
